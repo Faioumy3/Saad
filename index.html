@@ -8,6 +8,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -28,24 +30,797 @@
         }
       }
     </script>
+    
     <style>
-      body {
-        font-family: 'Amiri', serif;
+      body { font-family: 'Amiri', serif; }
+      .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+      .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+      .custom-scrollbar::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+      @keyframes fade-in-up {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
       }
+      .animate-fade-in-up { animation: fade-in-up 0.5s ease-out forwards; }
+      .animate-fade-in { animation: fade-in-up 0.3s ease-out forwards; }
     </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
-    "recharts": "https://aistudiocdn.com/recharts@^3.5.1"
-  }
-}
-</script>
-</head>
+
+    <!-- Import Map for Modules -->
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@18.2.0",
+        "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+        "lucide-react": "https://esm.sh/lucide-react@0.292.0",
+        "recharts": "https://esm.sh/recharts@2.10.3"
+      }
+    }
+    </script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  </head>
   <body class="bg-gradient-to-br from-bgStart to-bgEnd min-h-screen">
     <div id="root"></div>
+
+    <script type="text/babel" data-type="module">
+      import React, { useState, useEffect } from 'react';
+      import { createRoot } from 'react-dom/client';
+      import { 
+        User, FileText, Users, Download, Settings, Lock, 
+        UserCheck, UserX, Trash2, Eye, Key, LogOut, 
+        Settings as SettingsIcon, Check, X, UserPlus, 
+        Save, History, BookOpen 
+      } from 'lucide-react';
+      import { 
+        BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
+      } from 'recharts';
+
+      // ==========================================
+      // SERVICES & API
+      // ==========================================
+      
+      const INITIAL_TEACHERS = {
+        'eman': { 
+          name: 'إيمان الصباغ', 
+          code: 'eman', 
+          password: 'eman2025', 
+          email: 'ahmed@example.com',
+          students: [
+            { id: '31201261802388', name: 'أروى نصر الحسيني المزين' },
+            { id: '31112141802322', name: 'بسملة رضا جابر ساري' },
+            { id: '31203151804361', name: 'بسملة سعيد إسماعيل نوار' },
+            { id: '31210201800741', name: 'جنى إبراهيم أحمد الفاضلي' },
+            { id: '31110171800976', name: 'سعد محمود سعد عبد الرحيم' },
+            { id: '30905231802441', name: 'سمر سعد حسني الشاعر' },
+            { id: '31205031802805', name: 'ليلى سمارة محمود الحلو' },
+            { id: '31205101802344', name: 'بسملة محمد محمد الهنداوي' },
+            { id: '31008141800301', name: 'جنات رضا عبد النبي حيدر' },
+            { id: '31303161802728', name: 'خلود وائل نصر الفيومي' }
+          ]
+        },
+        'samar': { 
+          name: 'سمر الشاعر', 
+          code: 'samar', 
+          password: 'samar2025', 
+          email: 'samar@example.com',
+          students: [
+            { id: '31309271801245', name: 'روان قطب إبراهيم أبوبكر' },
+            { id: '31206201801651', name: 'محمد رمضان محمد محمد ساري' },
+            { id: '31206211801161', name: 'مريم علي السيد نصر' },
+            { id: '30901011806327', name: 'إيمان محمد عبد الحميد الصباغ' },
+            { id: '31407171806209', name: 'آية محمود سعد عبد الرحيم' },
+            { id: '31111111800884', name: 'تميمة مدحت أحمد الدهمة' },
+            { id: '31408031801629', name: 'ريناد رزق سالم أبونوارج' },
+            { id: '31001311801966', name: 'سمية عمر محمد القريشي' },
+            { id: '31601261802378', name: 'محمد محمود إبراهيم الرويني' }
+          ]
+        }
+      };
+
+      const STORAGE_KEYS = {
+        TEACHERS: 'quran_app_teachers',
+        STUDENTS: 'quran_app_students',
+        ATTENDANCE: 'quran_app_attendance',
+        STUDENT_LOGS: 'quran_app_student_logs',
+        ADMIN_PWD: 'quran_app_admin_pwd'
+      };
+
+      const getStored = (key, defaultVal) => {
+        const stored = localStorage.getItem(key);
+        if (!stored) return defaultVal;
+        try { return JSON.parse(stored); } catch { return defaultVal; }
+      };
+
+      const setStored = (key, val) => {
+        localStorage.setItem(key, JSON.stringify(val));
+      };
+
+      const api = {
+        getAdminPassword: () => getStored(STORAGE_KEYS.ADMIN_PWD, 'admin2025'),
+        setAdminPassword: (password) => setStored(STORAGE_KEYS.ADMIN_PWD, password),
+        
+        getTeachers: () => getStored(STORAGE_KEYS.TEACHERS, INITIAL_TEACHERS),
+        saveTeacher: (teacher) => {
+          const teachers = api.getTeachers();
+          teachers[teacher.code] = teacher;
+          setStored(STORAGE_KEYS.TEACHERS, teachers);
+        },
+        deleteTeacher: (code) => {
+          const teachers = api.getTeachers();
+          delete teachers[code];
+          setStored(STORAGE_KEYS.TEACHERS, teachers);
+        },
+
+        getStudents: () => getStored(STORAGE_KEYS.STUDENTS, []),
+        registerStudent: (student) => {
+          const students = api.getStudents();
+          students.push(student);
+          setStored(STORAGE_KEYS.STUDENTS, students);
+        },
+        updateStudent: (student) => {
+          const students = api.getStudents();
+          const idx = students.findIndex(s => s.id === student.id || (s.code && s.code === student.code));
+          if (idx >= 0) {
+            students[idx] = student;
+            setStored(STORAGE_KEYS.STUDENTS, students);
+          }
+        },
+        deleteStudent: (id) => {
+          const students = api.getStudents().filter(s => s.id !== id);
+          setStored(STORAGE_KEYS.STUDENTS, students);
+        },
+
+        getAttendance: () => getStored(STORAGE_KEYS.ATTENDANCE, []),
+        saveAttendanceBatch: (records) => {
+          const current = api.getAttendance();
+          setStored(STORAGE_KEYS.ATTENDANCE, [...current, ...records]);
+        },
+
+        getStudentLogs: (studentCode) => {
+          const allLogs = getStored(STORAGE_KEYS.STUDENT_LOGS, {});
+          return allLogs[studentCode] || [];
+        },
+        saveStudentLog: (studentCode, record) => {
+          const allLogs = getStored(STORAGE_KEYS.STUDENT_LOGS, {});
+          if (!allLogs[studentCode]) allLogs[studentCode] = [];
+          allLogs[studentCode].push(record);
+          setStored(STORAGE_KEYS.STUDENT_LOGS, allLogs);
+        },
+
+        exportData: () => ({
+          teachers: api.getTeachers(),
+          students: api.getStudents(),
+          attendance: api.getAttendance(),
+          studentLogs: getStored(STORAGE_KEYS.STUDENT_LOGS, {})
+        }),
+        importData: (data) => {
+          if (data.teachers) setStored(STORAGE_KEYS.TEACHERS, data.teachers);
+          if (data.students) setStored(STORAGE_KEYS.STUDENTS, data.students);
+          if (data.attendance) setStored(STORAGE_KEYS.ATTENDANCE, data.attendance);
+          if (data.studentLogs) setStored(STORAGE_KEYS.STUDENT_LOGS, data.studentLogs);
+        }
+      };
+
+      // ==========================================
+      // UI COMPONENTS
+      // ==========================================
+      
+      const Button = ({ children, variant = 'primary', fullWidth = false, className = '', ...props }) => {
+        const baseStyles = "py-3 px-6 rounded-xl font-bold transition-all duration-300 transform hover:scale-[1.02] shadow-md";
+        const variants = {
+          primary: "bg-primary text-white hover:bg-secondary",
+          secondary: "bg-gray-200 text-gray-800 hover:bg-gray-300",
+          danger: "bg-danger text-white hover:bg-red-700",
+          accent: "bg-accent text-white hover:bg-orange-600",
+          purple: "bg-purple-600 text-white hover:bg-purple-700",
+          pink: "bg-pink-500 text-white hover:bg-pink-600",
+        };
+        return (
+          <button className={`${baseStyles} ${variants[variant]} ${fullWidth ? 'w-full' : ''} ${className}`} {...props}>
+            {children}
+          </button>
+        );
+      };
+
+      const Card = ({ children, className = '', title }) => (
+        <div className={`bg-white rounded-2xl shadow-[0_2px_12px_rgba(80,180,82,0.1)] p-6 md:p-8 ${className}`}>
+          {title && <h2 className="text-2xl md:text-3xl font-bold text-secondary mb-6 text-center">{title}</h2>}
+          {children}
+        </div>
+      );
+
+      const Input = ({ label, className = '', ...props }) => (
+        <div className="mb-4">
+          <label className="block text-gray-700 font-medium mb-2 text-right">{label}</label>
+          <input className={`w-full p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-right ${className}`} {...props} />
+        </div>
+      );
+
+      const Select = ({ label, children, ...props }) => (
+        <div className="mb-4">
+          <label className="block text-gray-700 font-medium mb-2 text-right">{label}</label>
+          <select className="w-full p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-right bg-white" {...props}>
+            {children}
+          </select>
+        </div>
+      );
+
+      const StatCard = ({ label, value, colorClass = "text-primary", icon: Icon }) => (
+        <div className="bg-white rounded-2xl p-6 shadow-sm flex flex-col items-center justify-center text-center">
+          {Icon && <Icon className={`w-8 h-8 mb-2 ${colorClass}`} />}
+          <div className="text-gray-500 text-sm mb-1">{label}</div>
+          <div className={`text-3xl font-bold ${colorClass}`}>{value}</div>
+        </div>
+      );
+
+      // ==========================================
+      // VIEWS
+      // ==========================================
+
+      // --- HOME ---
+      const Home = ({ onNavigate }) => {
+        return (
+          <div className="flex flex-col items-center justify-center min-h-[70vh] px-4">
+            <div className="text-center mb-8 animate-fade-in-up">
+              <p className="text-xl text-primary font-bold mb-6">السلام عليكم ورحمة الله وبركاته ☺️</p>
+              <div className="space-y-2 text-gray-800 text-lg md:text-xl font-medium max-w-2xl mx-auto leading-relaxed">
+                <p>لَعَلَّ إِلهَ الْعَرْشِ يَا إِخْوَتِي يَقِي ... جَمَاعَتَنَا كُلَّ المَكاَرِهِ هُوَّلَا</p>
+                <p>وَيَجْعَلُنَا مِمَّنْ يَكُونُ كِتاَبُهُ ... شَفِيعًا لَهُمْ إِذْ مَا نَسُوْهُ فَيمْحَلَا</p>
+              </div>
+            </div>
+            <div className="w-full max-w-md">
+              <div className="mb-8 flex justify-center">
+                 <div className="relative group">
+                    <img 
+                      src="sheikh.jpg" 
+                      alt="الشيخ سعد" 
+                      className="w-40 h-40 rounded-full object-cover border-4 border-secondary/20 shadow-xl group-hover:scale-105 transition-transform duration-500"
+                      onError={(e) => { e.currentTarget.style.display = 'none'; document.getElementById('homeFallback').style.display = 'flex'; }}
+                    />
+                    <div id="homeFallback" className="w-40 h-40 rounded-full bg-secondary/10 border-4 border-secondary/20 hidden items-center justify-center shadow-xl">
+                       <User className="w-20 h-20 text-secondary/50" />
+                    </div>
+                 </div>
+              </div>
+              <Card className="animate-fade-in-up delay-100">
+                <p className="text-center text-gray-800 mb-6 leading-relaxed">
+                  متابعة حضور وغياب الطلاب والمعلمين وإدارة شؤون المكتب <br/> بشكل رقمي لتسهيل الإدارة اليومية.
+                </p>
+                <div className="space-y-3">
+                  <Button fullWidth onClick={() => onNavigate('LOGIN_TEACHER')}>دخول المعلمين</Button>
+                  <Button fullWidth variant="purple" onClick={() => onNavigate('LOGIN_ADMIN')}>لوحة التحكم</Button>
+                  <Button fullWidth variant="pink" onClick={() => onNavigate('LOGIN_STUDENT')}>دخول الطالب</Button>
+                  <Button fullWidth variant="accent" onClick={() => onNavigate('REGISTER_STUDENT')}>تسجيل طالب جديد</Button>
+                </div>
+              </Card>
+            </div>
+          </div>
+        );
+      };
+
+      // --- LOGIN ---
+      const Login = ({ view, onNavigate, onLoginSuccess }) => {
+        const [formData, setFormData] = useState({ code: '', password: '', name: '', confirmPassword: '' });
+        const [error, setError] = useState('');
+        const [success, setSuccess] = useState('');
+
+        const handleChange = (e) => {
+          setFormData({ ...formData, [e.target.name]: e.target.value });
+          setError('');
+        };
+
+        const handleAdminLogin = () => {
+          if (formData.password === api.getAdminPassword()) {
+            onLoginSuccess('admin');
+          } else {
+            setError('كلمة السر غير صحيحة');
+          }
+        };
+
+        const handleTeacherLogin = () => {
+          const teachers = api.getTeachers();
+          const teacher = teachers[formData.code];
+          if (teacher && teacher.password === formData.password) {
+            onLoginSuccess('teacher', teacher);
+          } else {
+            setError('الكود أو كلمة السر خطأ');
+          }
+        };
+
+        const handleStudentLogin = () => {
+          const students = api.getStudents();
+          const student = students.find(s => s.code === formData.code && s.password === formData.password);
+          if (student) {
+            onLoginSuccess('student', student);
+          } else {
+            setError('بيانات الدخول غير صحيحة');
+          }
+        };
+
+        const handleStudentRegister = () => {
+          if (!formData.name || !formData.code || !formData.password) return setError('أكمل البيانات');
+          if (formData.password !== formData.confirmPassword) return setError('كلمات السر غير متطابقة');
+          const students = api.getStudents();
+          if (students.some(s => s.code === formData.code)) return setError('الكود مستخدم من قبل');
+
+          api.registerStudent({
+            id: Date.now().toString(),
+            name: formData.name,
+            code: formData.code,
+            password: formData.password,
+            class: 'جديد',
+            registrationDate: new Date().toISOString()
+          });
+
+          setSuccess('تم التسجيل بنجاح! جاري التحويل...');
+          setTimeout(() => onNavigate('LOGIN_STUDENT'), 1500);
+        };
+
+        const titles = {
+          'LOGIN_ADMIN': 'دخول الإدارة',
+          'LOGIN_TEACHER': 'دخول المعلم',
+          'LOGIN_STUDENT': 'دخول الطالب',
+          'REGISTER_STUDENT': 'تسجيل طالب جديد'
+        };
+
+        return (
+          <div className="flex items-center justify-center min-h-[70vh]">
+            <Card className="w-full max-w-md animate-fade-in-up">
+              <h2 className="text-2xl font-bold text-center text-secondary mb-6">{titles[view]}</h2>
+              {view === 'REGISTER_STUDENT' && (
+                <Input label="اسم الطالب" name="name" value={formData.name} onChange={handleChange} placeholder="الاسم الثلاثي" />
+              )}
+              {(view !== 'LOGIN_ADMIN') && (
+                <Input label={view === 'REGISTER_STUDENT' ? 'اختر كود للدخول' : 'كود الدخول'} name="code" value={formData.code} onChange={handleChange} />
+              )}
+              <Input label="كلمة السر" type="password" name="password" value={formData.password} onChange={handleChange} />
+              {view === 'REGISTER_STUDENT' && (
+                <Input label="تأكيد كلمة السر" type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} />
+              )}
+              {error && <div className="text-red-500 text-center mb-4 text-sm font-bold">{error}</div>}
+              {success && <div className="text-green-500 text-center mb-4 text-sm font-bold">{success}</div>}
+              <div className="mt-6 space-y-3">
+                {view === 'LOGIN_ADMIN' && <Button fullWidth onClick={handleAdminLogin}>دخول</Button>}
+                {view === 'LOGIN_TEACHER' && <Button fullWidth onClick={handleTeacherLogin}>دخول</Button>}
+                {view === 'LOGIN_STUDENT' && <Button fullWidth onClick={handleStudentLogin}>دخول</Button>}
+                {view === 'REGISTER_STUDENT' && <Button fullWidth onClick={handleStudentRegister}>تسجيل</Button>}
+                <Button fullWidth variant="secondary" onClick={() => onNavigate('HOME')}>رجوع للقائمة الرئيسية</Button>
+                {view === 'LOGIN_STUDENT' && (
+                  <div className="text-center mt-2">
+                    <button className="text-primary text-sm underline" onClick={() => onNavigate('REGISTER_STUDENT')}>ليس لدي حساب؟ تسجيل جديد</button>
+                  </div>
+                )}
+              </div>
+            </Card>
+          </div>
+        );
+      };
+
+      // --- ADMIN PANEL ---
+      const AdminPanel = ({ onLogout }) => {
+        const [activeTab, setActiveTab] = useState('dashboard');
+        const [records, setRecords] = useState([]);
+        const [teachers, setTeachers] = useState({});
+        const [students, setStudents] = useState([]);
+        const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0]);
+        const [filterTeacher, setFilterTeacher] = useState('');
+        const [newTeacher, setNewTeacher] = useState({ name: '', code: '', password: '', email: '' });
+        const [pwdData, setPwdData] = useState({ old: '', new: '', confirm: '' });
+        const [selectedStudentLogs, setSelectedStudentLogs] = useState(null);
+
+        const refreshData = () => {
+          setRecords(api.getAttendance());
+          setTeachers(api.getTeachers());
+          setStudents(api.getStudents());
+        };
+
+        useEffect(() => { refreshData(); }, []);
+
+        const filteredRecords = records.filter(r => {
+          return (filterDate ? r.date === filterDate : true) && (filterTeacher ? r.teacherCode === filterTeacher : true);
+        });
+
+        const stats = {
+          total: filteredRecords.length,
+          present: filteredRecords.filter(r => r.status === 'present').length,
+          absent: filteredRecords.filter(r => r.status === 'absent').length,
+        };
+
+        const handleAddTeacher = () => {
+          if (!newTeacher.name || !newTeacher.code) return alert('أكمل البيانات');
+          api.saveTeacher({ ...newTeacher, students: [] });
+          setNewTeacher({ name: '', code: '', password: '', email: '' });
+          refreshData();
+          alert('تم إضافة المعلم');
+        };
+
+        const handleDeleteTeacher = (code) => { if (confirm('هل أنت متأكد؟')) { api.deleteTeacher(code); refreshData(); } };
+        const handleDeleteStudent = (id) => { if(confirm('حذف الطالب؟')) { api.deleteStudent(id); refreshData(); } };
+
+        const handleExportCSV = () => {
+          let csv = '\uFEFFالتاريخ,المعلم,اسم الطالب,الحالة,الملاحظات\n';
+          filteredRecords.forEach(r => {
+            const teacherName = teachers[r.teacherCode]?.name || r.teacherCode;
+            const status = r.status === 'present' ? 'حاضر' : 'غائب';
+            csv += `${r.date},"${teacherName}","${r.studentName}","${status}","${(r.notes || '').replace(/"/g, '""')}"\n`;
+          });
+          const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+          const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `attendance_${filterDate}.csv`; link.click();
+        };
+
+        const handleExportStudentLogsCSV = () => {
+          const allData = api.exportData();
+          const studentsList = api.getStudents();
+          const studentMap = studentsList.reduce((acc, s) => { if(s.code) acc[s.code] = s.name; return acc; }, {});
+          let csv = '\uFEFFالتاريخ,اسم الطالب,الكود,الحفظ الجديد,المراجعة,التسميع,الهدف,ملاحظات\n';
+          Object.entries(allData.studentLogs).forEach(([code, logs]) => {
+             const name = studentMap[code] || 'غير معروف';
+             logs.forEach(log => {
+                csv += `"${log.dateDisplay}","${name}","${code}","${(log.newMemorizing || '').replace(/"/g, '""')}","${(log.review || '').replace(/"/g, '""')}","${log.listening}","${(log.newTarget || '').replace(/"/g, '""')}","${(log.notes || '').replace(/"/g, '""')}"\n`;
+             });
+          });
+          const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+          const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `student_logs_${new Date().toISOString().split('T')[0]}.csv`; link.click();
+        };
+
+        const handleBackup = () => {
+          const data = api.exportData();
+          const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+          const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `backup_${new Date().toISOString().split('T')[0]}.json`; link.click();
+        };
+
+        const handleChangePassword = () => {
+          if (pwdData.old !== api.getAdminPassword()) return alert('كلمة السر الحالية خطأ');
+          if (pwdData.new.length < 4 || pwdData.new !== pwdData.confirm) return alert('خطأ في كلمة السر الجديدة');
+          api.setAdminPassword(pwdData.new);
+          setPwdData({ old: '', new: '', confirm: '' });
+          alert('تم التغيير بنجاح'); onLogout();
+        };
+
+        return (
+          <div className="pb-20">
+            <div className="bg-white p-6 rounded-2xl shadow-sm mb-6 flex flex-col justify-between items-center gap-4 text-center">
+              <div><h2 className="text-2xl font-bold text-secondary">لوحة الإدارة</h2><p className="text-primary mt-1">{new Date().toLocaleDateString('ar-EG')}</p></div>
+              <Button variant="danger" onClick={onLogout}>خروج</Button>
+            </div>
+            <div className="flex flex-wrap gap-2 mb-6 justify-center">
+              {['dashboard','teachers','students','reports','settings'].map(tab => (
+                <Button key={tab} variant={activeTab === tab ? 'primary' : 'secondary'} onClick={() => setActiveTab(tab)} className="text-sm px-3 capitalize">
+                  {tab === 'dashboard' ? 'الرئيسية' : tab === 'teachers' ? 'المعلمين' : tab === 'students' ? 'الطلاب' : tab === 'reports' ? 'التقارير' : 'الإعدادات'}
+                </Button>
+              ))}
+            </div>
+            {activeTab === 'dashboard' && (
+              <>
+                <Card className="mb-6">
+                  <div className="flex flex-col gap-4">
+                    <Input label="التاريخ" type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)} />
+                    <Select label="المعلم" value={filterTeacher} onChange={e => setFilterTeacher(e.target.value)}>
+                      <option value="">الكل</option>
+                      {Object.values(teachers).map(t => <option key={t.code} value={t.code}>{t.name}</option>)}
+                    </Select>
+                    <Button onClick={refreshData} fullWidth>تحديث</Button>
+                  </div>
+                </Card>
+                <div className="grid grid-cols-3 gap-2 mb-6">
+                  <StatCard label="السجلات" value={stats.total} icon={FileText} colorClass="text-blue-600" />
+                  <StatCard label="حاضر" value={stats.present} icon={UserCheck} colorClass="text-green-600" />
+                  <StatCard label="غائب" value={stats.absent} icon={UserX} colorClass="text-red-600" />
+                </div>
+                <div className="fixed bottom-14 left-0 right-0 p-4 flex justify-center z-30 pointer-events-none">
+                   <Button onClick={handleExportCSV} variant="accent" className="pointer-events-auto shadow-lg"><Download className="w-4 h-4 inline ml-2" /> تقرير الحضور (CSV)</Button>
+                </div>
+              </>
+            )}
+            {activeTab === 'teachers' && (
+              <div className="space-y-6">
+                <Card title="إضافة معلم">
+                  <Input label="الاسم" value={newTeacher.name} onChange={e => setNewTeacher({...newTeacher, name: e.target.value})} />
+                  <Input label="الكود" value={newTeacher.code} onChange={e => setNewTeacher({...newTeacher, code: e.target.value})} />
+                  <Input label="كلمة السر" type="password" value={newTeacher.password} onChange={e => setNewTeacher({...newTeacher, password: e.target.value})} />
+                  <Button fullWidth onClick={handleAddTeacher}>إضافة</Button>
+                </Card>
+                <Card title="المعلمين">
+                   <div className="space-y-4 max-h-[500px] overflow-y-auto custom-scrollbar">
+                     {Object.values(teachers).map(t => (
+                       <div key={t.code} className="p-4 border rounded-lg flex justify-between items-center bg-gray-50">
+                         <div><div className="font-bold text-secondary">{t.name}</div><div className="text-sm text-gray-500">{t.code}</div></div>
+                         <Button className="p-2 h-10 w-10 flex items-center justify-center" variant="danger" onClick={() => handleDeleteTeacher(t.code)}><Trash2 className="w-4 h-4" /></Button>
+                       </div>
+                     ))}
+                   </div>
+                </Card>
+              </div>
+            )}
+            {activeTab === 'students' && (
+              <Card title="الطلاب">
+                  <div className="space-y-3 max-h-[600px] overflow-y-auto custom-scrollbar">
+                     {students.map(s => (
+                       <div key={s.id} className="p-3 border rounded-lg bg-gray-50">
+                         <div className="flex justify-between items-start mb-2">
+                            <div><div className="font-bold text-secondary">{s.name}</div><div className="text-xs text-gray-500">{s.code}</div></div>
+                            <Button className="p-2 h-8 w-8 flex items-center justify-center" variant="danger" onClick={() => handleDeleteStudent(s.id)}><Trash2 className="w-4 h-4" /></Button>
+                         </div>
+                         <Button fullWidth className="text-sm py-2 mt-2" variant="primary" onClick={() => { if(s.code) setSelectedStudentLogs({ student: s, logs: api.getStudentLogs(s.code) }); else alert('لا يوجد كود'); }}><Eye className="w-4 h-4 inline ml-1" /> عرض اليوميات</Button>
+                       </div>
+                     ))}
+                   </div>
+              </Card>
+            )}
+            {activeTab === 'reports' && (
+              <Card title="التقارير">
+                <div className="space-y-4">
+                  <Button onClick={handleExportStudentLogsCSV} variant="primary" fullWidth><Download className="ml-2 w-4 h-4" /> يوميات الطلاب (Excel)</Button>
+                  <Button onClick={handleBackup} variant="purple" fullWidth>نسخة احتياطية (JSON)</Button>
+                  <div className="border-t pt-4"><p className="mb-2">استعادة:</p><input type="file" onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader();r.onload=(v)=>{try{api.importData(JSON.parse(v.target.result));alert('تم');refreshData();}catch{alert('خطأ');}};r.readAsText(f);}}} className="w-full border-2 border-dashed p-4 rounded" /></div>
+                </div>
+              </Card>
+            )}
+            {activeTab === 'settings' && (
+               <Card title="الإعدادات">
+                  <Input label="كلمة السر الحالية" type="password" value={pwdData.old} onChange={e => setPwdData({...pwdData, old: e.target.value})} />
+                  <Input label="الجديدة" type="password" value={pwdData.new} onChange={e => setPwdData({...pwdData, new: e.target.value})} />
+                  <Input label="تأكيد" type="password" value={pwdData.confirm} onChange={e => setPwdData({...pwdData, confirm: e.target.value})} />
+                  <Button onClick={handleChangePassword} variant="primary" fullWidth className="mt-2">حفظ</Button>
+               </Card>
+            )}
+            {selectedStudentLogs && (
+              <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
+                <Card className="w-full max-w-md max-h-[80vh] flex flex-col bg-white" title={`يوميات: ${selectedStudentLogs.student.name}`}>
+                   <div className="overflow-y-auto flex-1 custom-scrollbar p-1 space-y-3">
+                     {selectedStudentLogs.logs.length===0?<div className="text-center py-10">لا توجد يوميات</div>:selectedStudentLogs.logs.slice().reverse().map((log, idx)=>(
+                       <div key={idx} className="bg-gray-50 p-3 rounded-xl border">
+                          <div className="font-bold text-primary mb-2 border-b pb-1">📅 {log.dateDisplay}</div>
+                          <div className="text-sm space-y-1">
+                             <div><span className="text-gray-500">الحفظ:</span> {log.newMemorizing}</div>
+                             <div><span className="text-gray-500">المراجعة:</span> {log.review}</div>
+                             <div><span className="text-gray-500">الهدف:</span> {log.newTarget}</div>
+                             {log.notes && <div className="text-xs text-yellow-700 bg-yellow-50 p-1 rounded mt-1">{log.notes}</div>}
+                          </div>
+                       </div>
+                     ))}
+                   </div>
+                   <Button fullWidth variant="secondary" onClick={() => setSelectedStudentLogs(null)} className="mt-4">إغلاق</Button>
+                </Card>
+              </div>
+            )}
+          </div>
+        );
+      };
+
+      // --- TEACHER PANEL ---
+      const TeacherPanel = ({ teacher, onLogout }) => {
+        const [currentTeacher, setCurrentTeacher] = useState(teacher);
+        const [attendance, setAttendance] = useState({});
+        const [showManageStudents, setShowManageStudents] = useState(false);
+        const [showChangePwd, setShowChangePwd] = useState(false);
+        const [newStudent, setNewStudent] = useState({ name: '', id: '' });
+        const [newPwd, setNewPwd] = useState('');
+
+        useEffect(() => {
+          const updated = api.getTeachers()[teacher.code];
+          if (updated) {
+            setCurrentTeacher(updated);
+            const init = {}; updated.students?.forEach(s => init[s.name] = { status: null, notes: '' });
+            setAttendance(init);
+          }
+        }, [teacher.code]);
+
+        const handleStatus = (name, status) => setAttendance(p => ({ ...p, [name]: { ...p[name], status: p[name]?.status === status ? null : status } }));
+        const handleNote = (name, notes) => setAttendance(p => ({ ...p, [name]: { ...p[name], notes } }));
+        
+        const saveAttendance = () => {
+          const records = Object.entries(attendance).filter(([_, d]) => d.status).map(([n, d]) => ({
+            id: `${Date.now()}-${Math.random()}`, teacherCode: currentTeacher.code, studentName: n, status: d.status, notes: d.notes, date: new Date().toISOString().split('T')[0]
+          }));
+          if (!records.length) return alert('حدد الحالة');
+          api.saveAttendanceBatch(records); alert('تم الحفظ'); onLogout();
+        };
+
+        const handleAddStudent = () => {
+          if(!newStudent.name||!newStudent.id) return alert('بيانات ناقصة');
+          const t = { ...currentTeacher }; if(!t.students) t.students=[];
+          if(t.students.some(s=>s.id===newStudent.id)) return alert('موجود');
+          t.students.push(newStudent); api.saveTeacher(t); setCurrentTeacher(t); setNewStudent({name:'',id:''}); alert('تم');
+        };
+
+        const handleChangePwd = () => {
+          if(newPwd.length<4) return alert('قصيرة');
+          const t={...currentTeacher, password:newPwd}; api.saveTeacher(t); setCurrentTeacher(t); setNewPwd(''); alert('تم'); setShowChangePwd(false);
+        };
+
+        return (
+          <div className="pb-24">
+            <Card className="mb-6 sticky top-4 z-40 border-green-100 flex justify-between items-center">
+              <div><h2 className="text-xl font-bold text-secondary">الحضور</h2><div className="text-sm">{currentTeacher.name}</div></div>
+              <div className="flex gap-2">
+                <Button variant="secondary" onClick={()=>setShowChangePwd(true)} className="p-2"><Key className="w-4 h-4"/></Button>
+                <Button variant="accent" onClick={()=>setShowManageStudents(true)} className="px-3 text-sm">إدارة الطلاب</Button>
+              </div>
+            </Card>
+            <div className="space-y-4">
+              {currentTeacher.students?.map(s => {
+                  const d = attendance[s.name] || { status: null, notes: '' };
+                  return (
+                    <div key={s.id} className="bg-white rounded-xl p-4 shadow-sm border flex flex-col md:flex-row gap-4 items-center">
+                      <div className="flex-1 w-full text-right"><div className="font-bold text-lg">{s.name}</div><input type="text" placeholder="ملاحظات..." className="w-full mt-2 p-2 border rounded bg-gray-50" value={d.notes} onChange={e=>handleNote(s.name, e.target.value)} /></div>
+                      <div className="flex gap-2 w-full md:w-auto">
+                        <button onClick={()=>handleStatus(s.name, 'absent')} className={`flex-1 px-4 py-3 rounded font-bold border ${d.status==='absent'?'bg-red-500 text-white':'bg-red-50 text-red-500'}`}>غائب</button>
+                        <button onClick={()=>handleStatus(s.name, 'present')} className={`flex-1 px-4 py-3 rounded font-bold border ${d.status==='present'?'bg-green-500 text-white':'bg-green-50 text-green-500'}`}>حاضر</button>
+                      </div>
+                    </div>
+                  );
+              })}
+            </div>
+            <div className="fixed bottom-0 left-0 right-0 bg-white p-4 shadow-top flex gap-4 z-50">
+              <Button variant="danger" onClick={onLogout} className="flex-1">خروج</Button>
+              <Button onClick={saveAttendance} className="flex-[2]">حفظ</Button>
+            </div>
+            {showManageStudents && (
+              <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
+                <Card className="w-full max-w-lg" title="إدارة الطلاب">
+                  <div className="bg-gray-50 p-4 rounded mb-4">
+                      <Input label="الاسم" value={newStudent.name} onChange={e=>setNewStudent({...newStudent, name:e.target.value})} />
+                      <Input label="الهوية" value={newStudent.id} onChange={e=>setNewStudent({...newStudent, id:e.target.value})} />
+                      <Button fullWidth onClick={handleAddStudent} variant="accent">إضافة</Button>
+                  </div>
+                  <div className="max-h-60 overflow-y-auto space-y-2">
+                     {currentTeacher.students?.map(s=>(<div key={s.id} className="flex justify-between p-2 border bg-white"><span>{s.name}</span><button onClick={()=>{if(confirm('حذف؟')){const t={...currentTeacher};t.students=t.students.filter(x=>x.id!==s.id);api.saveTeacher(t);setCurrentTeacher(t);}}} className="text-red-500"><Trash2 className="w-4 h-4"/></button></div>))}
+                  </div>
+                  <Button fullWidth variant="secondary" onClick={()=>setShowManageStudents(false)} className="mt-4">إغلاق</Button>
+                </Card>
+              </div>
+            )}
+            {showChangePwd && (
+              <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
+                <Card title="تغيير كلمة السر">
+                  <Input label="الجديدة" type="password" value={newPwd} onChange={e=>setNewPwd(e.target.value)} />
+                  <div className="flex gap-2 mt-4"><Button fullWidth variant="secondary" onClick={()=>setShowChangePwd(false)}>إلغاء</Button><Button fullWidth onClick={handleChangePwd}>حفظ</Button></div>
+                </Card>
+              </div>
+            )}
+          </div>
+        );
+      };
+
+      // --- STUDENT PANEL ---
+      const StudentPanel = ({ student, onLogout }) => {
+        const [logs, setLogs] = useState([]);
+        const [form, setForm] = useState({ newMemorizing: '', review: '', listening: '', newTarget: '', notes: '' });
+        const [showChangePwd, setShowChangePwd] = useState(false);
+        const [newPwd, setNewPwd] = useState('');
+
+        useEffect(() => { if(student.code) setLogs(api.getStudentLogs(student.code)); }, [student.code]);
+
+        const handleSubmit = () => {
+          if (!form.newMemorizing || !form.review || !form.listening || !form.newTarget) return alert('أكمل البيانات');
+          if (!student.code) return alert('خطأ في الكود');
+          const rec = { ...form, date: new Date().toISOString(), dateDisplay: new Date().toLocaleDateString('ar-EG') };
+          api.saveStudentLog(student.code, rec);
+          setLogs([rec, ...logs]);
+          setForm({ newMemorizing: '', review: '', listening: '', newTarget: '', notes: '' });
+          alert('تم الحفظ');
+        };
+
+        const handleChangePwd = () => {
+           if(newPwd.length<4) return alert('قصيرة');
+           api.updateStudent({ ...student, password: newPwd });
+           setNewPwd(''); alert('تم التغيير'); onLogout();
+        };
+
+        return (
+          <div className="pb-20">
+            <Card className="mb-6 bg-gradient-to-r from-green-50 to-white flex justify-between">
+              <div><h2 className="text-2xl font-bold text-secondary">مرحباً {student.name}</h2><div className="text-sm">الكود: {student.code}</div></div>
+              <Button variant="secondary" onClick={()=>setShowChangePwd(true)} className="p-2"><Key className="w-5 h-5"/></Button>
+            </Card>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card title="تسجيل اليوميات">
+                <Input label="📖 الحفظ الجديد" value={form.newMemorizing} onChange={e=>setForm({...form, newMemorizing:e.target.value})} />
+                <Input label="🔄 المراجعة" value={form.review} onChange={e=>setForm({...form, review:e.target.value})} />
+                <Select label="🎤 التسميع" value={form.listening} onChange={e=>setForm({...form, listening:e.target.value})}><option value="">--</option><option value="نعم">نعم</option><option value="لا">لا</option><option value="جزئي">جزئي</option></Select>
+                <Input label="📍 الهدف" value={form.newTarget} onChange={e=>setForm({...form, newTarget:e.target.value})} />
+                <div className="mb-4"><label className="block mb-2 text-right">ملاحظات</label><textarea className="w-full border-2 p-3 rounded" value={form.notes} onChange={e=>setForm({...form, notes:e.target.value})} /></div>
+                <Button fullWidth onClick={handleSubmit}>حفظ</Button>
+              </Card>
+              <Card title="السجل" className="max-h-[800px] flex flex-col">
+                 <div className="overflow-y-auto flex-1 custom-scrollbar space-y-4 pr-2">
+                    {logs.length===0 && <div className="text-center py-10 text-gray-400">لا يوجد سجلات</div>}
+                    {logs.slice().reverse().map((log, i) => (
+                      <div key={i} className="bg-gray-50 rounded-xl p-4 border hover:border-green-200 transition-colors">
+                        <div className="font-bold text-primary mb-2 border-b pb-1">📅 {log.dateDisplay}</div>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div><span className="font-bold">الحفظ:</span> {log.newMemorizing}</div>
+                          <div><span className="font-bold">المراجعة:</span> {log.review}</div>
+                          <div><span className="font-bold">التسميع:</span> {log.listening}</div>
+                          <div><span className="font-bold">الهدف:</span> {log.newTarget}</div>
+                        </div>
+                        {log.notes && <div className="mt-2 text-xs bg-white p-2 border rounded">{log.notes}</div>}
+                      </div>
+                    ))}
+                 </div>
+              </Card>
+            </div>
+            <div className="fixed bottom-0 left-0 right-0 bg-white p-4 shadow-top flex justify-center z-50">
+              <Button variant="danger" onClick={onLogout} className="px-8 flex gap-2"><LogOut className="w-4 h-4"/> خروج</Button>
+            </div>
+            {showChangePwd && (
+              <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
+                <Card title="تغيير كلمة السر">
+                  <Input label="الجديدة" type="password" value={newPwd} onChange={e=>setNewPwd(e.target.value)} />
+                  <div className="flex gap-2 mt-4"><Button fullWidth variant="secondary" onClick={()=>setShowChangePwd(false)}>إلغاء</Button><Button fullWidth onClick={handleChangePwd}>حفظ</Button></div>
+                </Card>
+              </div>
+            )}
+          </div>
+        );
+      };
+
+      // ==========================================
+      // MAIN APP COMPONENT
+      // ==========================================
+      
+      const App = () => {
+        const [view, setView] = useState('HOME');
+        const [session, setSession] = useState(null);
+        const [imageError, setImageError] = useState(false);
+
+        const handleLoginSuccess = (userType, data) => {
+          setSession({ type: userType, data });
+          if (userType === 'admin') setView('DASHBOARD_ADMIN');
+          if (userType === 'teacher') setView('DASHBOARD_TEACHER');
+          if (userType === 'student') setView('DASHBOARD_STUDENT');
+        };
+
+        const handleLogout = () => { setSession(null); setView('HOME'); };
+
+        const renderContent = () => {
+          switch (view) {
+            case 'HOME': return <Home onNavigate={setView} />;
+            case 'LOGIN_TEACHER': case 'LOGIN_ADMIN': case 'LOGIN_STUDENT': case 'REGISTER_STUDENT':
+              return <Login view={view} onNavigate={setView} onLoginSuccess={handleLoginSuccess} />;
+            case 'DASHBOARD_ADMIN': return session?.type === 'admin' ? <AdminPanel onLogout={handleLogout} /> : <Home onNavigate={setView} />;
+            case 'DASHBOARD_TEACHER': return session?.type === 'teacher' ? <TeacherPanel teacher={session.data} onLogout={handleLogout} /> : <Home onNavigate={setView} />;
+            case 'DASHBOARD_STUDENT': return session?.type === 'student' ? <StudentPanel student={session.data} onLogout={handleLogout} /> : <Home onNavigate={setView} />;
+            default: return <Home onNavigate={setView} />;
+          }
+        };
+
+        return (
+          <div className="min-h-screen relative bg-gray-100 flex justify-center items-start pt-0 md:pt-4">
+            <div className="w-full max-w-md bg-gradient-to-br from-bgStart to-bgEnd min-h-screen shadow-2xl relative flex flex-col md:rounded-xl overflow-hidden border-x border-gray-200">
+              <header className="sticky top-0 z-50 bg-secondary text-white shadow-md">
+                <div className="px-4 py-3 flex items-center gap-3 w-full">
+                  <div className="shrink-0">
+                    {imageError ? (
+                       <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center border border-white/30"><User className="w-6 h-6 text-white/90" /></div>
+                    ) : (
+                      <img src="sheikh.jpg" alt="الشيخ" className="w-10 h-10 rounded-full object-cover border border-white/40 shadow-sm bg-white" onError={(e) => { setImageError(true); e.currentTarget.style.display = 'none'; }} />
+                    )}
+                  </div>
+                  <h1 className="text-sm font-bold whitespace-nowrap overflow-hidden text-ellipsis flex-1 leading-relaxed pt-1">مكتب تحفيظ الشيخ سعد بن محمود أبو نوارج</h1>
+                </div>
+              </header>
+
+              <main className="flex-1 px-4 py-6 pb-24 overflow-x-hidden">{renderContent()}</main>
+
+              <footer className="absolute bottom-0 left-0 w-full bg-white/95 backdrop-blur-md shadow-[0_-4px_20px_rgba(0,0,0,0.08)] py-3 px-6 z-40 border-t border-gray-100">
+                <div className="flex justify-center items-center gap-3 text-sm font-bold text-gray-700">
+                  <span className="text-gray-500 text-xs">تواصل معنا:</span>
+                  <a href="https://wa.me/201060936428" target="_blank" className="flex items-center gap-2 text-green-600 bg-green-50 px-3 py-1.5 rounded-full">
+                    <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.272-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.67-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.076 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421-7.403h-.004a9.87 9.87 0 00-4.951 1.263l-.355.192-.368-.06 1.41 5.209.9.003c1.231-1.187 2.927-1.9 4.773-1.9 4.97 0 9.005 4.028 9.005 9.009 0 4.983-4.032 9.015-9.009 9.015-4.981 0-9.01-4.032-9.01-9.015 0-1.946.648-3.835 1.8-5.36l.134-.341-.086-.368-1.41-5.209-.37-.056.192-.355A9.87 9.87 0 0112.051 2c5.495 0 9.973 4.478 9.973 9.973 0 5.495-4.478 9.973-9.973 9.973-5.495 0-9.973-4.478-9.973-9.973 0-2.15.697-4.243 1.977-6.004"/></svg>
+                    01060936428
+                  </a>
+                </div>
+              </footer>
+            </div>
+          </div>
+        );
+      };
+
+      const root = createRoot(document.getElementById('root'));
+      root.render(<App />);
+    </script>
   </body>
 </html>
