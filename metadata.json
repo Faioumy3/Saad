@@ -1,0 +1,5 @@
+{
+  "name": "Quran School Manager",
+  "description": "A comprehensive management system for Quran memorization schools, featuring portals for admins, teachers, and students to track attendance, progress, and reports.",
+  "requestFramePermissions": []
+}
